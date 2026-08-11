@@ -3,6 +3,7 @@ const cors = require("cors");
 require("dotenv").config();
 const pool = require("./db");
 const lagunasRoutes = require("./routes/lagunas.routes");
+const cuantificacionesRoutes = require("./routes/cuantificaciones.routes");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -41,6 +42,7 @@ app.get("/health/db", async (req, res) => {
   }
 });
 app.use("/api/lagunas", lagunasRoutes);
+app.use("/api/cuantificaciones", cuantificacionesRoutes);
 app.listen(PORT, () => {
   console.log(`Servidor funcionando en http://localhost:${PORT}`);
 });
