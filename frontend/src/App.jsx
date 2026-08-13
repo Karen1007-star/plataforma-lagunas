@@ -3,6 +3,7 @@ import { NavLink, useLocation } from "react-router";
 import "./App.css";
 import "./Overview.css";
 import "./Lagunas.css";
+import "./Cuantificacion.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
@@ -115,6 +116,16 @@ function formatNumber(value, decimals = 0) {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(Number(value || 0));
+}
+
+function formatDate(date, options = { day: "2-digit", month: "short", year: "numeric" }) {
+  if (!date) return "—";
+  return new Date(`${date}T00:00:00`).toLocaleDateString("es-PE", options);
+}
+
+function formatPercentage(value) {
+  const numericValue = Number(value || 0);
+  return numericValue <= 1 ? numericValue * 100 : numericValue;
 }
 
 function MetricCard({ icon, label, value, note, tone }) {
@@ -812,6 +823,346 @@ function LagoonsPage({ catalog }) {
   );
 }
 
+function QuantificationTrendChart({ measurements }) {
+  const width = 920;
+  const height = 280;
+  const padding = { top: 26, right: 24, bottom: 47, left: 46 };
+  const usableWidth = width - padding.left - padding.right;
+  const usableHeight = height - padding.top - padding.bottom;
+  const series = measurements.map((measurement, index) => ({
+    ...measurement,
+    x:
+      measurements.length === 1
+        ? padding.left + usableWidth / 2
+        : padding.left + (index / (measurements.length - 1)) * usableWidth,
+    availability: formatPercentage(measurement.porcentaje_disponible),
+    wetArea: formatPercentage(measurement.porcentaje_area_humeda),
+  }));
+
+  const pointFor = (item, key) =>
+    `${item.x},${padding.top + usableHeight - (Math.min(100, Math.max(0, item[key])) / 100) * usableHeight}`;
+  const availabilityPoints = series.map((item) => pointFor(item, "availability")).join(" ");
+  const wetAreaPoints = series.map((item) => pointFor(item, "wetArea")).join(" ");
+  const labelStep = Math.max(1, Math.ceil(series.length / 6));
+
+  if (!series.length) return null;
+
+  return (
+    <div className="quant-chart-wrap">
+      <svg
+        className="quant-chart"
+        viewBox={`0 0 ${width} ${height}`}
+        role="img"
+        aria-label="Evolución porcentual del área húmeda y la disponibilidad de agua"
+      >
+        {[0, 25, 50, 75, 100].map((tick) => {
+          const y = padding.top + usableHeight - (tick / 100) * usableHeight;
+          return (
+            <g key={tick}>
+              <line x1={padding.left} x2={width - padding.right} y1={y} y2={y} />
+              <text x={padding.left - 12} y={y + 4}>{tick}%</text>
+            </g>
+          );
+        })}
+
+        <polyline className="quant-line wet" points={wetAreaPoints} />
+        <polyline className="quant-line available" points={availabilityPoints} />
+
+        {series.map((item, index) => (
+          <g key={item.id_cuantificacion}>
+            <circle
+              className="quant-point wet"
+              cx={item.x}
+              cy={pointFor(item, "wetArea").split(",")[1]}
+              r="4"
+            />
+            <circle
+              className="quant-point available"
+              cx={item.x}
+              cy={pointFor(item, "availability").split(",")[1]}
+              r="4"
+            />
+            {(index % labelStep === 0 || index === series.length - 1) && (
+              <text className="quant-date-label" x={item.x} y={height - 15}>
+                {formatDate(item.fecha_medicion, { month: "short", year: "2-digit" })}
+              </text>
+            )}
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+function QuantificationPage({ catalog }) {
+  const [selectedLagoonId, setSelectedLagoonId] = useState("");
+  const [measurements, setMeasurements] = useState([]);
+  const [loadingMeasurements, setLoadingMeasurements] = useState(false);
+  const [measurementError, setMeasurementError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const activeLagoonId = selectedLagoonId || catalog[0]?.id_laguna || "";
+  const selectedLagoon = catalog.find((lagoon) => lagoon.id_laguna === activeLagoonId);
+
+  useEffect(() => {
+    if (!activeLagoonId) return undefined;
+
+    const controller = new AbortController();
+
+    async function loadMeasurements() {
+      setLoadingMeasurements(true);
+      setMeasurementError("");
+
+      try {
+        const response = await fetch(
+          `${API_BASE}/cuantificaciones/laguna/${activeLagoonId}`,
+          { signal: controller.signal },
+        );
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(payload.mensaje || "No se pudieron obtener las mediciones");
+        }
+
+        const rows = Array.isArray(payload.datos) ? payload.datos : [];
+        setMeasurements(
+          [...rows].sort(
+            (first, second) =>
+              new Date(first.fecha_medicion) - new Date(second.fecha_medicion),
+          ),
+        );
+      } catch (requestError) {
+        if (requestError.name === "AbortError") return;
+        console.error(requestError);
+        setMeasurements([]);
+        setMeasurementError(requestError.message);
+      } finally {
+        if (!controller.signal.aborted) setLoadingMeasurements(false);
+      }
+    }
+
+    loadMeasurements();
+    return () => controller.abort();
+  }, [activeLagoonId, reloadKey]);
+
+  const latest = measurements.at(-1);
+  const previous = measurements.at(-2);
+  const availability = formatPercentage(latest?.porcentaje_disponible);
+  const wetAreaPercentage = formatPercentage(latest?.porcentaje_area_humeda);
+  const dryAreaPercentage = Math.max(0, 100 - wetAreaPercentage);
+
+  function variation(currentValue, previousValue, decimals = 1) {
+    if (previousValue === undefined || previousValue === null) return "Primera medición registrada";
+    const difference = Number(currentValue || 0) - Number(previousValue || 0);
+    const sign = difference > 0 ? "+" : "";
+    return `${sign}${formatNumber(difference, decimals)} respecto a la medición anterior`;
+  }
+
+  return (
+    <>
+      <section className="panel quant-toolbar">
+        <div className="quant-toolbar-copy">
+          <p className="eyebrow">Consulta por laguna</p>
+          <h2>Balance hídrico histórico</h2>
+          <span>Selecciona una laguna para revisar sus mediciones en el tiempo.</span>
+        </div>
+
+        <label className="quant-selector">
+          <span>Laguna seleccionada</span>
+          <select
+            value={activeLagoonId}
+            onChange={(event) => setSelectedLagoonId(event.target.value)}
+          >
+            {catalog.map((lagoon) => (
+              <option key={lagoon.id_laguna} value={lagoon.id_laguna}>
+                {lagoon.nombre_laguna} · {lagoon.codigo_laguna}
+              </option>
+            ))}
+          </select>
+        </label>
+      </section>
+
+      {loadingMeasurements ? (
+        <section className="panel quant-feedback">
+          <div className="loader" />
+          <p>Cargando mediciones de {selectedLagoon?.nombre_laguna || "la laguna"}…</p>
+        </section>
+      ) : measurementError ? (
+        <section className="panel quant-feedback quant-error" role="alert">
+          <Icon name="alert" />
+          <h2>No se pudieron cargar las cuantificaciones</h2>
+          <p>{measurementError}</p>
+          <button type="button" onClick={() => setReloadKey((value) => value + 1)}>
+            Reintentar
+          </button>
+        </section>
+      ) : measurements.length === 0 ? (
+        <section className="panel quant-feedback">
+          <Icon name="chart" />
+          <h2>Sin mediciones disponibles</h2>
+          <p>Esta laguna todavía no tiene registros de cuantificación.</p>
+        </section>
+      ) : (
+        <>
+          <section className="metrics-grid" aria-label="Última cuantificación registrada">
+            <MetricCard
+              icon="lake"
+              label="Área húmeda"
+              value={`${formatNumber(latest.area_humeda_ha, 2)} ha`}
+              note={variation(latest.area_humeda_ha, previous?.area_humeda_ha, 2)}
+              tone="blue"
+            />
+            <MetricCard
+              icon="chart"
+              label="Volumen disponible"
+              value={`${formatNumber(latest.volumen_disponible_hm3, 3)} hm³`}
+              note={variation(
+                latest.volumen_disponible_hm3,
+                previous?.volumen_disponible_hm3,
+                3,
+              )}
+              tone="purple"
+            />
+            <MetricCard
+              icon="check"
+              label="Disponibilidad"
+              value={`${formatNumber(availability, 1)} %`}
+              note={`${formatNumber(latest.capacidad_max_hm3, 2)} hm³ de capacidad máxima`}
+              tone="green"
+            />
+            <MetricCard
+              icon="pin"
+              label="Nivel del agua"
+              value={`${formatNumber(latest.nivel_agua_m, 2)} m`}
+              note={variation(latest.nivel_agua_m, previous?.nivel_agua_m, 2)}
+              tone="orange"
+            />
+          </section>
+
+          <section className="quant-main-grid">
+            <article className="panel quant-trend-panel">
+              <div className="panel-heading quant-panel-heading">
+                <div>
+                  <p className="eyebrow">Evolución temporal</p>
+                  <h2>Área húmeda y disponibilidad</h2>
+                </div>
+                <div className="quant-legend">
+                  <span><i className="wet" /> Área húmeda</span>
+                  <span><i className="available" /> Disponibilidad</span>
+                </div>
+              </div>
+
+              <QuantificationTrendChart measurements={measurements} />
+
+              <footer className="quant-chart-footer">
+                <span>{measurements.length} mediciones registradas</span>
+                <strong>Última actualización: {formatDate(latest.fecha_medicion)}</strong>
+              </footer>
+            </article>
+
+            <article className="panel quant-balance-panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Medición más reciente</p>
+                  <h2>Estado hídrico</h2>
+                </div>
+                <span className="panel-tag">{formatDate(latest.fecha_medicion)}</span>
+              </div>
+
+              <div
+                className="availability-ring"
+                style={{ "--availability": `${Math.min(100, availability) * 3.6}deg` }}
+              >
+                <div>
+                  <strong>{formatNumber(availability, 1)}%</strong>
+                  <span>disponible</span>
+                </div>
+              </div>
+
+              <div className="area-composition">
+                <div className="composition-title">
+                  <span>Composición del área</span>
+                  <strong>{formatNumber(latest.area_total_ha, 2)} ha</strong>
+                </div>
+                <div className="composition-bar">
+                  <span className="wet" style={{ width: `${Math.min(100, wetAreaPercentage)}%` }} />
+                  <span className="dry" style={{ width: `${Math.min(100, dryAreaPercentage)}%` }} />
+                </div>
+                <div className="composition-legend">
+                  <span><i className="wet" /> Húmeda {formatNumber(latest.area_humeda_ha, 2)} ha</span>
+                  <span><i className="dry" /> Seca {formatNumber(latest.area_seca_ha, 2)} ha</span>
+                </div>
+              </div>
+
+              <div className="quant-source">
+                <span>Fuente del dato</span>
+                <strong>{latest.fuente_dato || "No especificada"}</strong>
+              </div>
+            </article>
+          </section>
+
+          <section className="panel quant-history-panel">
+            <div className="panel-heading quant-history-heading">
+              <div>
+                <p className="eyebrow">Registro cronológico</p>
+                <h2>Historial de cuantificaciones</h2>
+              </div>
+              <div className="quant-lagoon-id">
+                <span>{selectedLagoon?.nombre_laguna || latest.nombre_laguna}</span>
+                <code>{selectedLagoon?.codigo_laguna || latest.codigo_laguna}</code>
+              </div>
+            </div>
+
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Área húmeda</th>
+                    <th>Área seca</th>
+                    <th>Disponibilidad</th>
+                    <th>Volumen disponible</th>
+                    <th>Nivel del agua</th>
+                    <th>Fuente</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...measurements].reverse().map((measurement) => {
+                    const availablePercentage = formatPercentage(
+                      measurement.porcentaje_disponible,
+                    );
+                    return (
+                      <tr key={measurement.id_cuantificacion}>
+                        <td><strong>{formatDate(measurement.fecha_medicion)}</strong></td>
+                        <td>{formatNumber(measurement.area_humeda_ha, 2)} ha</td>
+                        <td>{formatNumber(measurement.area_seca_ha, 2)} ha</td>
+                        <td>
+                          <div className="quant-table-progress">
+                            <div><span style={{ width: `${Math.min(100, availablePercentage)}%` }} /></div>
+                            <strong>{formatNumber(availablePercentage, 1)}%</strong>
+                          </div>
+                        </td>
+                        <td>{formatNumber(measurement.volumen_disponible_hm3, 3)} hm³</td>
+                        <td>{formatNumber(measurement.nivel_agua_m, 2)} m</td>
+                        <td><span className="source-chip">{measurement.fuente_dato || "—"}</span></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <footer className="table-footer">
+              <span>{measurements.length} registros mostrados</span>
+              <span>Ordenados del más reciente al más antiguo</span>
+            </footer>
+          </section>
+        </>
+      )}
+    </>
+  );
+}
+
 function PendingModule({ icon, title }) {
   return (
     <section className="panel pending-module">
@@ -899,6 +1250,10 @@ function App() {
 
     if (location.pathname === "/lagunas") {
       return <LagoonsPage catalog={catalog} />;
+    }
+
+    if (location.pathname === "/cuantificacion") {
+      return <QuantificationPage catalog={catalog} />;
     }
 
     const pending = navigation.find((item) => item.path === location.pathname);
