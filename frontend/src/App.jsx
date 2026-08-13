@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router";
+import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import "./App.css";
 import "./Overview.css";
 import "./Lagunas.css";
 import "./Cuantificacion.css";
+import "./MapaLagunas.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
@@ -537,11 +541,135 @@ function QualityPage({ summary, states, lagoons }) {
   );
 }
 
+function lagoonStateClass(state) {
+  const normalized = String(state || "").toLowerCase();
+  if (normalized === "operativa") return "operational";
+  if (normalized.includes("observación")) return "observation";
+  return "maintenance";
+}
+
+function MapBounds({ lagoons }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const positions = lagoons
+      .map((lagoon) => [Number(lagoon.latitud_decimal), Number(lagoon.longitud_decimal)])
+      .filter(([latitude, longitude]) => Number.isFinite(latitude) && Number.isFinite(longitude));
+
+    if (positions.length === 1) {
+      map.setView(positions[0], 12);
+    } else if (positions.length > 1) {
+      map.fitBounds(positions, { padding: [45, 45], maxZoom: 10 });
+    }
+  }, [lagoons, map]);
+
+  return null;
+}
+
+function LagoonsMap({ lagoons, onSelectLagoon }) {
+  const mappedLagoons = lagoons.filter((lagoon) => {
+    const latitude = Number(lagoon.latitud_decimal);
+    const longitude = Number(lagoon.longitud_decimal);
+    return Number.isFinite(latitude) && Number.isFinite(longitude);
+  });
+
+  function markerIcon(state) {
+    const tone = lagoonStateClass(state);
+    return L.divIcon({
+      className: "lagoon-marker-shell",
+      html: `<span class="lagoon-map-marker ${tone}"><i></i></span>`,
+      iconSize: [34, 42],
+      iconAnchor: [17, 42],
+      popupAnchor: [0, -37],
+    });
+  }
+
+  return (
+    <section className="panel lagoons-map-panel" aria-label="Mapa interactivo de lagunas">
+      <div className="map-panel-header">
+        <div>
+          <p className="eyebrow">Distribución geográfica</p>
+          <h2>Mapa de lagunas registradas</h2>
+          <span>{mappedLagoons.length} ubicaciones visibles según los filtros aplicados</span>
+        </div>
+
+        <div className="map-state-legend" aria-label="Leyenda del mapa">
+          <span><i className="operational" /> Operativa</span>
+          <span><i className="observation" /> En observación</span>
+          <span><i className="maintenance" /> Mantenimiento</span>
+        </div>
+      </div>
+
+      <div className="lagoon-map-canvas">
+        <MapContainer
+          center={[-9.19, -75.02]}
+          zoom={5}
+          scrollWheelZoom
+          aria-label="Mapa con la ubicación de las lagunas"
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <MapBounds lagoons={mappedLagoons} />
+
+          {mappedLagoons.map((lagoon) => (
+            <Marker
+              key={lagoon.id_laguna}
+              position={[Number(lagoon.latitud_decimal), Number(lagoon.longitud_decimal)]}
+              icon={markerIcon(lagoon.estado_operativo)}
+            >
+              <Popup minWidth={245}>
+                <article className="lagoon-map-popup">
+                  <div className="popup-title-row">
+                    <div>
+                      <p>Laguna registrada</p>
+                      <h3>{lagoon.nombre_laguna}</h3>
+                      <code>{lagoon.codigo_laguna}</code>
+                    </div>
+                    <span className={`lagoon-state ${lagoonStateClass(lagoon.estado_operativo)}`}>
+                      {lagoon.estado_operativo}
+                    </span>
+                  </div>
+
+                  <div className="popup-location">
+                    <Icon name="pin" />
+                    <span>
+                      {lagoon.distrito}, {lagoon.provincia}<br />
+                      <small>{lagoon.departamento}</small>
+                    </span>
+                  </div>
+
+                  <div className="popup-stats">
+                    <div><span>Área</span><strong>{formatNumber(lagoon.area_total_ha, 1)} ha</strong></div>
+                    <div><span>Capacidad</span><strong>{formatNumber(lagoon.capacidad_max_hm3, 2)} hm³</strong></div>
+                    <div><span>Altitud</span><strong>{formatNumber(lagoon.altitud_msnm)} m</strong></div>
+                  </div>
+
+                  <button type="button" onClick={() => onSelectLagoon(lagoon)}>
+                    Ver ficha técnica <span aria-hidden="true">→</span>
+                  </button>
+                </article>
+              </Popup>
+            </Marker>
+          ))}
+        </MapContainer>
+      </div>
+
+      <footer className="map-panel-footer">
+        <span>Usa el ratón para desplazarte y la rueda para acercar o alejar.</span>
+        <strong>Selecciona un marcador para consultar la laguna.</strong>
+      </footer>
+    </section>
+  );
+}
+
 function LagoonsPage({ catalog }) {
   const [query, setQuery] = useState("");
   const [department, setDepartment] = useState("Todos");
   const [operationalState, setOperationalState] = useState("Todos");
   const [selectedLagoon, setSelectedLagoon] = useState(null);
+  const [viewMode, setViewMode] = useState("cards");
 
   const departments = useMemo(
     () => [...new Set(catalog.map((lagoon) => lagoon.departamento))].sort(),
@@ -607,13 +735,6 @@ function LagoonsPage({ catalog }) {
     };
   }, [selectedLagoon]);
 
-  function stateClass(state) {
-    const normalized = String(state || "").toLowerCase();
-    if (normalized === "operativa") return "operational";
-    if (normalized.includes("observación")) return "observation";
-    return "maintenance";
-  }
-
   return (
     <>
       <section className="metrics-grid" aria-label="Resumen del inventario de lagunas">
@@ -652,6 +773,24 @@ function LagoonsPage({ catalog }) {
           <p className="eyebrow">Inventario principal</p>
           <h2>Explorar lagunas</h2>
           <span>{filteredCatalog.length} de {catalog.length} registros visibles</span>
+          <div className="lagoon-view-switch" role="group" aria-label="Tipo de visualización">
+            <button
+              className={viewMode === "cards" ? "active" : ""}
+              type="button"
+              aria-pressed={viewMode === "cards"}
+              onClick={() => setViewMode("cards")}
+            >
+              <Icon name="grid" /> Tarjetas
+            </button>
+            <button
+              className={viewMode === "map" ? "active" : ""}
+              type="button"
+              aria-pressed={viewMode === "map"}
+              onClick={() => setViewMode("map")}
+            >
+              <Icon name="pin" /> Mapa
+            </button>
+          </div>
         </div>
 
         <div className="lagoon-filters">
@@ -689,7 +828,9 @@ function LagoonsPage({ catalog }) {
         </div>
       </section>
 
-      {filteredCatalog.length > 0 ? (
+      {filteredCatalog.length > 0 && viewMode === "map" ? (
+        <LagoonsMap lagoons={filteredCatalog} onSelectLagoon={setSelectedLagoon} />
+      ) : filteredCatalog.length > 0 ? (
         <section className="lagoon-grid" aria-label="Listado de lagunas">
           {filteredCatalog.map((lagoon) => (
             <article className="lagoon-card" key={lagoon.id_laguna}>
@@ -697,7 +838,7 @@ function LagoonsPage({ catalog }) {
                 <div className="lagoon-contours contour-one" />
                 <div className="lagoon-contours contour-two" />
                 <span className="lagoon-card-icon"><Icon name="lake" /></span>
-                <span className={`lagoon-state ${stateClass(lagoon.estado_operativo)}`}>
+                <span className={`lagoon-state ${lagoonStateClass(lagoon.estado_operativo)}`}>
                   {lagoon.estado_operativo}
                 </span>
               </div>
@@ -783,7 +924,7 @@ function LagoonsPage({ catalog }) {
             </div>
 
             <div className="lagoon-detail-status">
-              <span className={`lagoon-state ${stateClass(selectedLagoon.estado_operativo)}`}>
+              <span className={`lagoon-state ${lagoonStateClass(selectedLagoon.estado_operativo)}`}>
                 {selectedLagoon.estado_operativo}
               </span>
               <span>{selectedLagoon.tipo_laguna}</span>
