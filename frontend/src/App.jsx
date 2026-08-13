@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router";
 import "./App.css";
 import "./Overview.css";
+import "./Lagunas.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
@@ -525,6 +526,292 @@ function QualityPage({ summary, states, lagoons }) {
   );
 }
 
+function LagoonsPage({ catalog }) {
+  const [query, setQuery] = useState("");
+  const [department, setDepartment] = useState("Todos");
+  const [operationalState, setOperationalState] = useState("Todos");
+  const [selectedLagoon, setSelectedLagoon] = useState(null);
+
+  const departments = useMemo(
+    () => [...new Set(catalog.map((lagoon) => lagoon.departamento))].sort(),
+    [catalog],
+  );
+
+  const operationalStates = useMemo(
+    () => [...new Set(catalog.map((lagoon) => lagoon.estado_operativo))].sort(),
+    [catalog],
+  );
+
+  const filteredCatalog = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return catalog.filter((lagoon) => {
+      const matchesQuery =
+        !normalizedQuery ||
+        `${lagoon.nombre_laguna} ${lagoon.codigo_laguna} ${lagoon.provincia} ${lagoon.distrito}`
+          .toLowerCase()
+          .includes(normalizedQuery);
+      const matchesDepartment =
+        department === "Todos" || lagoon.departamento === department;
+      const matchesState =
+        operationalState === "Todos" || lagoon.estado_operativo === operationalState;
+
+      return matchesQuery && matchesDepartment && matchesState;
+    });
+  }, [catalog, department, operationalState, query]);
+
+  const catalogSummary = useMemo(
+    () => ({
+      totalArea: catalog.reduce(
+        (total, lagoon) => total + Number(lagoon.area_total_ha || 0),
+        0,
+      ),
+      totalCapacity: catalog.reduce(
+        (total, lagoon) => total + Number(lagoon.capacidad_max_hm3 || 0),
+        0,
+      ),
+      averageAltitude: catalog.length
+        ? catalog.reduce(
+            (total, lagoon) => total + Number(lagoon.altitud_msnm || 0),
+            0,
+          ) / catalog.length
+        : 0,
+    }),
+    [catalog],
+  );
+
+  useEffect(() => {
+    if (!selectedLagoon) return undefined;
+
+    function closeOnEscape(event) {
+      if (event.key === "Escape") setSelectedLagoon(null);
+    }
+
+    document.addEventListener("keydown", closeOnEscape);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", closeOnEscape);
+      document.body.style.overflow = "";
+    };
+  }, [selectedLagoon]);
+
+  function stateClass(state) {
+    const normalized = String(state || "").toLowerCase();
+    if (normalized === "operativa") return "operational";
+    if (normalized.includes("observación")) return "observation";
+    return "maintenance";
+  }
+
+  return (
+    <>
+      <section className="metrics-grid" aria-label="Resumen del inventario de lagunas">
+        <MetricCard
+          icon="lake"
+          label="Lagunas registradas"
+          value={formatNumber(catalog.length)}
+          note={`${departments.length} departamentos`}
+          tone="blue"
+        />
+        <MetricCard
+          icon="grid"
+          label="Área total"
+          value={`${formatNumber(catalogSummary.totalArea, 1)} ha`}
+          note="Superficie hídrica registrada"
+          tone="purple"
+        />
+        <MetricCard
+          icon="chart"
+          label="Capacidad máxima"
+          value={`${formatNumber(catalogSummary.totalCapacity, 2)} hm³`}
+          note="Capacidad conjunta estimada"
+          tone="green"
+        />
+        <MetricCard
+          icon="pin"
+          label="Altitud promedio"
+          value={`${formatNumber(catalogSummary.averageAltitude)} m`}
+          note="Metros sobre el nivel del mar"
+          tone="orange"
+        />
+      </section>
+
+      <section className="panel lagoon-toolbar">
+        <div className="lagoon-toolbar-copy">
+          <p className="eyebrow">Inventario principal</p>
+          <h2>Explorar lagunas</h2>
+          <span>{filteredCatalog.length} de {catalog.length} registros visibles</span>
+        </div>
+
+        <div className="lagoon-filters">
+          <label className="search-box lagoon-search">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-4-4" />
+            </svg>
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Buscar laguna, código o ubicación"
+              type="search"
+            />
+          </label>
+
+          <label className="select-filter">
+            <span>Departamento</span>
+            <select value={department} onChange={(event) => setDepartment(event.target.value)}>
+              <option>Todos</option>
+              {departments.map((item) => <option key={item}>{item}</option>)}
+            </select>
+          </label>
+
+          <label className="select-filter">
+            <span>Estado</span>
+            <select
+              value={operationalState}
+              onChange={(event) => setOperationalState(event.target.value)}
+            >
+              <option>Todos</option>
+              {operationalStates.map((item) => <option key={item}>{item}</option>)}
+            </select>
+          </label>
+        </div>
+      </section>
+
+      {filteredCatalog.length > 0 ? (
+        <section className="lagoon-grid" aria-label="Listado de lagunas">
+          {filteredCatalog.map((lagoon) => (
+            <article className="lagoon-card" key={lagoon.id_laguna}>
+              <div className="lagoon-card-visual">
+                <div className="lagoon-contours contour-one" />
+                <div className="lagoon-contours contour-two" />
+                <span className="lagoon-card-icon"><Icon name="lake" /></span>
+                <span className={`lagoon-state ${stateClass(lagoon.estado_operativo)}`}>
+                  {lagoon.estado_operativo}
+                </span>
+              </div>
+
+              <div className="lagoon-card-body">
+                <div className="lagoon-card-title">
+                  <div>
+                    <h3>{lagoon.nombre_laguna}</h3>
+                    <code>{lagoon.codigo_laguna}</code>
+                  </div>
+                  <span className="lagoon-type">{lagoon.tipo_laguna}</span>
+                </div>
+
+                <div className="lagoon-location">
+                  <Icon name="pin" />
+                  <p>
+                    <strong>{lagoon.distrito}, {lagoon.provincia}</strong>
+                    <span>{lagoon.departamento} · {formatNumber(lagoon.altitud_msnm)} m s. n. m.</span>
+                  </p>
+                </div>
+
+                <div className="lagoon-card-stats">
+                  <div>
+                    <span>Área</span>
+                    <strong>{formatNumber(lagoon.area_total_ha, 1)} ha</strong>
+                  </div>
+                  <div>
+                    <span>Capacidad</span>
+                    <strong>{formatNumber(lagoon.capacidad_max_hm3, 2)} hm³</strong>
+                  </div>
+                </div>
+
+                <button type="button" onClick={() => setSelectedLagoon(lagoon)}>
+                  Ver ficha técnica
+                  <span aria-hidden="true">→</span>
+                </button>
+              </div>
+            </article>
+          ))}
+        </section>
+      ) : (
+        <section className="panel lagoon-empty">
+          <Icon name="lake" />
+          <h2>No encontramos lagunas</h2>
+          <p>Prueba con otro nombre o cambia los filtros seleccionados.</p>
+          <button
+            type="button"
+            onClick={() => {
+              setQuery("");
+              setDepartment("Todos");
+              setOperationalState("Todos");
+            }}
+          >
+            Limpiar filtros
+          </button>
+        </section>
+      )}
+
+      {selectedLagoon && (
+        <div className="lagoon-modal" role="dialog" aria-modal="true" aria-labelledby="lagoon-title">
+          <button
+            className="lagoon-modal-backdrop"
+            type="button"
+            aria-label="Cerrar ficha técnica"
+            onClick={() => setSelectedLagoon(null)}
+          />
+          <article className="lagoon-detail">
+            <div className="lagoon-detail-header">
+              <div className="lagoon-detail-mark"><Icon name="lake" /></div>
+              <div>
+                <p className="eyebrow">Ficha técnica</p>
+                <h2 id="lagoon-title">{selectedLagoon.nombre_laguna}</h2>
+                <code>{selectedLagoon.codigo_laguna}</code>
+              </div>
+              <button
+                className="detail-close"
+                type="button"
+                aria-label="Cerrar"
+                onClick={() => setSelectedLagoon(null)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="lagoon-detail-status">
+              <span className={`lagoon-state ${stateClass(selectedLagoon.estado_operativo)}`}>
+                {selectedLagoon.estado_operativo}
+              </span>
+              <span>{selectedLagoon.tipo_laguna}</span>
+              <span>Origen {selectedLagoon.origen}</span>
+            </div>
+
+            <div className="detail-section">
+              <h3>Ubicación</h3>
+              <dl>
+                <div><dt>Departamento</dt><dd>{selectedLagoon.departamento}</dd></div>
+                <div><dt>Provincia</dt><dd>{selectedLagoon.provincia}</dd></div>
+                <div><dt>Distrito</dt><dd>{selectedLagoon.distrito}</dd></div>
+                <div><dt>Centro poblado</dt><dd>{selectedLagoon.centro_poblado}</dd></div>
+                <div><dt>Altitud</dt><dd>{formatNumber(selectedLagoon.altitud_msnm)} m s. n. m.</dd></div>
+                <div><dt>Coordenadas</dt><dd>{selectedLagoon.latitud_decimal}, {selectedLagoon.longitud_decimal}</dd></div>
+              </dl>
+            </div>
+
+            <div className="detail-section">
+              <h3>Características hídricas</h3>
+              <dl>
+                <div><dt>Área total</dt><dd>{formatNumber(selectedLagoon.area_total_ha, 2)} ha</dd></div>
+                <div><dt>Capacidad máxima</dt><dd>{formatNumber(selectedLagoon.capacidad_max_hm3, 3)} hm³</dd></div>
+                <div><dt>Unidad hidrográfica</dt><dd>{selectedLagoon.nombre_unidad}</dd></div>
+                <div><dt>Código de unidad</dt><dd>{selectedLagoon.codigo_unidad}</dd></div>
+              </dl>
+            </div>
+
+            <div className="detail-responsible">
+              <span>Responsable</span>
+              <strong>{selectedLagoon.responsable}</strong>
+            </div>
+          </article>
+        </div>
+      )}
+    </>
+  );
+}
+
 function PendingModule({ icon, title }) {
   return (
     <section className="panel pending-module">
@@ -608,6 +895,10 @@ function App() {
 
     if (location.pathname === "/calidad") {
       return <QualityPage summary={summary} states={states} lagoons={qualityByLagoon} />;
+    }
+
+    if (location.pathname === "/lagunas") {
+      return <LagoonsPage catalog={catalog} />;
     }
 
     const pending = navigation.find((item) => item.path === location.pathname);

@@ -1,0 +1,496 @@
+.lagoon-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+  padding: 21px 23px;
+}
+
+.lagoon-toolbar-copy h2 {
+  margin: 0 0 4px;
+  color: #183c4e;
+  font-size: 18px;
+}
+
+.lagoon-toolbar-copy > span {
+  color: #91a4ad;
+  font-size: 10px;
+}
+
+.lagoon-filters {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: 1;
+}
+
+.lagoon-search {
+  width: min(330px, 40%);
+}
+
+.select-filter {
+  min-width: 145px;
+}
+
+.select-filter > span {
+  display: block;
+  margin: 0 0 5px 2px;
+  color: #8ba0aa;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.select-filter select {
+  width: 100%;
+  height: 40px;
+  padding: 0 32px 0 11px;
+  border: 1px solid #dfe9ed;
+  border-radius: 11px;
+  outline: none;
+  color: #4f6e7b;
+  background: #f8fbfc;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.select-filter select:focus {
+  border-color: #42aeb6;
+  box-shadow: 0 0 0 3px rgba(66, 174, 182, 0.1);
+}
+
+.lagoon-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.lagoon-card {
+  overflow: hidden;
+  border: 1px solid #e3ecef;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(30, 70, 91, 0.055);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.lagoon-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 35px rgba(30, 70, 91, 0.1);
+}
+
+.lagoon-card-visual {
+  height: 112px;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  overflow: hidden;
+  padding: 17px;
+  color: #ffffff;
+  background:
+    radial-gradient(circle at 28% 15%, rgba(102, 228, 216, 0.45), transparent 28%),
+    linear-gradient(130deg, #167d9f, #0b4e70);
+}
+
+.lagoon-card:nth-child(3n + 2) .lagoon-card-visual {
+  background:
+    radial-gradient(circle at 75% 5%, rgba(94, 221, 199, 0.42), transparent 30%),
+    linear-gradient(130deg, #198c91, #0c5c75);
+}
+
+.lagoon-card:nth-child(3n + 3) .lagoon-card-visual {
+  background:
+    radial-gradient(circle at 30% 0%, rgba(101, 202, 224, 0.4), transparent 30%),
+    linear-gradient(130deg, #246e9c, #174b70);
+}
+
+.lagoon-card-icon {
+  width: 42px;
+  height: 42px;
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 13px;
+  color: #e5ffff;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(4px);
+}
+
+.lagoon-contours {
+  width: 170px;
+  height: 50px;
+  position: absolute;
+  right: -28px;
+  bottom: -12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+}
+
+.contour-two {
+  right: -8px;
+  bottom: 4px;
+  transform: rotate(-7deg);
+}
+
+.lagoon-state {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  min-height: 25px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.lagoon-state.operational {
+  color: #16664f;
+  background: #dff5ec;
+}
+
+.lagoon-state.observation {
+  color: #9a5b1e;
+  background: #fff0dc;
+}
+
+.lagoon-state.maintenance {
+  color: #645b9f;
+  background: #efecfb;
+}
+
+.lagoon-card-body {
+  padding: 18px;
+}
+
+.lagoon-card-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 17px;
+}
+
+.lagoon-card-title h3 {
+  margin: 0 0 6px;
+  color: #244b5c;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.lagoon-type {
+  padding: 5px 7px;
+  border-radius: 7px;
+  color: #537684;
+  background: #eef5f6;
+  font-size: 8px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lagoon-location {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.lagoon-location .icon {
+  width: 15px;
+  height: 15px;
+  margin-top: 1px;
+  color: #2894a5;
+}
+
+.lagoon-location p {
+  margin: 0;
+}
+
+.lagoon-location strong,
+.lagoon-location span {
+  display: block;
+}
+
+.lagoon-location strong {
+  color: #5e7884;
+  font-size: 9px;
+}
+
+.lagoon-location span {
+  margin-top: 3px;
+  color: #9babb2;
+  font-size: 8px;
+}
+
+.lagoon-card-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.lagoon-card-stats > div {
+  padding: 10px 11px;
+  border: 1px solid #edf2f4;
+  border-radius: 10px;
+  background: #fafcfc;
+}
+
+.lagoon-card-stats span,
+.lagoon-card-stats strong {
+  display: block;
+}
+
+.lagoon-card-stats span {
+  margin-bottom: 3px;
+  color: #9aaab1;
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.lagoon-card-stats strong {
+  color: #39606f;
+  font-size: 11px;
+}
+
+.lagoon-card-body > button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  color: #197f91;
+  background: #eaf6f7;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 140ms ease;
+}
+
+.lagoon-card-body > button:hover {
+  color: #ffffff;
+  background: #198fa0;
+}
+
+.lagoon-empty {
+  min-height: 360px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  padding: 35px;
+  text-align: center;
+}
+
+.lagoon-empty > .icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 17px;
+  color: #2794a5;
+}
+
+.lagoon-empty h2 {
+  margin: 0 0 7px;
+  color: #315565;
+  font-size: 19px;
+}
+
+.lagoon-empty p {
+  margin-bottom: 16px;
+  color: #8da0a9;
+  font-size: 10px;
+}
+
+.lagoon-empty button {
+  padding: 9px 13px;
+  border: 0;
+  border-radius: 9px;
+  color: #ffffff;
+  background: #198fa0;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.lagoon-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.lagoon-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(5, 28, 43, 0.48);
+  backdrop-filter: blur(3px);
+  cursor: pointer;
+}
+
+.lagoon-detail {
+  width: min(510px, 92vw);
+  position: relative;
+  z-index: 1;
+  overflow-y: auto;
+  padding: 28px;
+  background: #ffffff;
+  box-shadow: -20px 0 55px rgba(7, 34, 51, 0.2);
+  animation: detail-in 220ms ease-out;
+}
+
+@keyframes detail-in {
+  from { transform: translateX(30px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.lagoon-detail-header {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 13px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #e8eff2;
+}
+
+.lagoon-detail-mark {
+  width: 50px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  color: #ffffff;
+  background: linear-gradient(145deg, #28b4b0, #19789d);
+}
+
+.lagoon-detail-header h2 {
+  margin: 0 0 6px;
+  color: #21495b;
+  font-size: 20px;
+}
+
+.detail-close {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  color: #708994;
+  background: #eef4f5;
+  font-size: 21px;
+  cursor: pointer;
+}
+
+.lagoon-detail-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 18px 0;
+}
+
+.lagoon-detail-status > span:not(.lagoon-state) {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 9px;
+  border-radius: 8px;
+  color: #5d7885;
+  background: #edf3f5;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.detail-section {
+  padding: 18px 0;
+  border-top: 1px solid #edf2f4;
+}
+
+.detail-section h3 {
+  margin: 0 0 13px;
+  color: #345868;
+  font-size: 12px;
+}
+
+.detail-section dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0;
+}
+
+.detail-section dl > div {
+  padding: 11px;
+  border: 1px solid #edf2f4;
+  border-radius: 10px;
+  background: #fafcfc;
+}
+
+.detail-section dt {
+  margin-bottom: 4px;
+  color: #98a9b0;
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.detail-section dd {
+  margin: 0;
+  color: #416372;
+  font-size: 10px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.detail-responsible {
+  margin-top: 6px;
+  padding: 14px;
+  border-radius: 12px;
+  color: #286a63;
+  background: #eaf7f3;
+}
+
+.detail-responsible span,
+.detail-responsible strong {
+  display: block;
+}
+
+.detail-responsible span {
+  margin-bottom: 3px;
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.detail-responsible strong {
+  font-size: 11px;
+}
+
+@media (max-width: 1180px) {
+  .lagoon-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lagoon-toolbar { align-items: flex-start; flex-direction: column; }
+  .lagoon-filters { width: 100%; justify-content: flex-start; }
+  .lagoon-search { width: auto; flex: 1; }
+}
+
+@media (max-width: 760px) {
+  .lagoon-filters { align-items: stretch; flex-direction: column; }
+  .lagoon-search,
+  .select-filter { width: 100%; }
+}
+
+@media (max-width: 620px) {
+  .lagoon-grid { grid-template-columns: 1fr; }
+  .lagoon-detail { width: 100%; }
+  .detail-section dl { grid-template-columns: 1fr; }
+}
