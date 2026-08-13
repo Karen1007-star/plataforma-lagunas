@@ -5,6 +5,7 @@ const pool = require("./db");
 const lagunasRoutes = require("./routes/lagunas.routes");
 const cuantificacionesRoutes = require("./routes/cuantificaciones.routes");
 const monitoreoRoutes = require("./routes/monitoreo.routes");
+const calidadRoutes = require("./routes/calidad.routes");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -45,6 +46,8 @@ app.get("/health/db", async (req, res) => {
 app.use("/api/lagunas", lagunasRoutes);
 app.use("/api/cuantificaciones", cuantificacionesRoutes);
 app.use("/api/monitoreo", monitoreoRoutes);
+app.use("/api/calidad", calidadRoutes);
+
 app.listen(PORT, () => {
   console.log(`Servidor funcionando en http://localhost:${PORT}`);
 });
