@@ -9,6 +9,7 @@ import "./Lagunas.css";
 import "./Cuantificacion.css";
 import "./MapaLagunas.css";
 import MonitoreoPage from "./Monitoreo";
+import CargasPage from "./Cargas";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
@@ -18,6 +19,7 @@ const navigation = [
   { label: "Cuantificación", icon: "chart", path: "/cuantificacion" },
   { label: "Monitoreo", icon: "pin", path: "/monitoreo" },
   { label: "Calidad", icon: "shield", path: "/calidad" },
+  { label: "Carga de datos", icon: "clipboard", path: "/cargas" },
 ];
 
 const pageDetails = {
@@ -46,6 +48,11 @@ const pageDetails = {
     title: "Calidad del agua",
     subtitle: "Seguimiento de parámetros, resultados y alertas por laguna.",
   },
+  "/cargas": {
+  eyebrow: "Administración de información",
+  title: "Carga de datos",
+  subtitle: "Importación y actualización de la base mediante archivos Excel.",
+},
 };
 
 const icons = {
@@ -1399,6 +1406,9 @@ function App() {
     }
     if (location.pathname === "/monitoreo") {
       return <MonitoreoPage catalog={catalog} />;
+    }
+    if (location.pathname === "/cargas") {
+      return <CargasPage />;
     }
     const pending = navigation.find((item) => item.path === location.pathname);
     return <PendingModule icon={pending?.icon || "grid"} title={pending?.label || "Módulo"} />;
