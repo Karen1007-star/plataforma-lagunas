@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { NavLink, useLocation } from "react-router";
+import { Navigate, NavLink, useLocation } from "react-router";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -10,6 +10,7 @@ import "./Cuantificacion.css";
 import "./MapaLagunas.css";
 import MonitoreoPage from "./Monitoreo";
 import CargasPage from "./Cargas";
+import LoginPage from "./Login";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
@@ -1333,6 +1334,11 @@ function PendingModule({ icon, title }) {
 
 function App() {
   const location = useLocation();
+  const [authToken, setAuthToken] = useState(
+    () => localStorage.getItem("lagunas_auth_token") || "",
+  );
+  const [user, setUser] = useState(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
   const [summary, setSummary] = useState(null);
   const [states, setStates] = useState([]);
   const [qualityByLagoon, setQualityByLagoon] = useState([]);
@@ -1376,11 +1382,84 @@ function App() {
     }
   }
 
+  function handleAuthenticated({ token, usuario }) {
+    localStorage.setItem("lagunas_auth_token", token);
+    setAuthToken(token);
+    setUser(usuario);
+    setSessionLoading(false);
+  }
+
+  function handleLogout() {
+    localStorage.removeItem("lagunas_auth_token");
+    setAuthToken("");
+    setUser(null);
+    setSummary(null);
+    setStates([]);
+    setQualityByLagoon([]);
+    setCatalog([]);
+    setUpdatedAt(null);
+    setError("");
+  }
+
   useEffect(() => {
-    loadDashboard();
-  }, []);
+    if (!authToken) {
+      setSessionLoading(false);
+      return undefined;
+    }
+
+    if (user) {
+      setSessionLoading(false);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+
+    async function validateSession() {
+      setSessionLoading(true);
+
+      try {
+        const response = await fetch(`${API_BASE}/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error("La sesión no es válida");
+        }
+
+        const data = await response.json();
+        setUser(data.usuario);
+      } catch (requestError) {
+        if (requestError.name === "AbortError") return;
+        localStorage.removeItem("lagunas_auth_token");
+        setAuthToken("");
+        setUser(null);
+      } finally {
+        if (!controller.signal.aborted) setSessionLoading(false);
+      }
+    }
+
+    validateSession();
+    return () => controller.abort();
+  }, [authToken, user]);
+
+  useEffect(() => {
+    if (user) loadDashboard();
+  }, [user?.id]);
 
   const currentPage = pageDetails[location.pathname] || pageDetails["/"];
+  const visibleNavigation = navigation.filter(
+    (item) => item.path !== "/cargas" || user?.rol === "administrador",
+  );
+  const userInitials = String(user?.nombre || "Usuario")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 
   function renderPage() {
     if (location.pathname === "/") {
@@ -1408,10 +1487,28 @@ function App() {
       return <MonitoreoPage catalog={catalog} />;
     }
     if (location.pathname === "/cargas") {
-      return <CargasPage />;
+      if (user?.rol !== "administrador") {
+        return <Navigate to="/" replace />;
+      }
+
+      return <CargasPage token={authToken} onSessionExpired={handleLogout} />;
     }
     const pending = navigation.find((item) => item.path === location.pathname);
     return <PendingModule icon={pending?.icon || "grid"} title={pending?.label || "Módulo"} />;
+  }
+
+  if (sessionLoading) {
+    return (
+      <div className="session-check">
+        <div className="session-check-logo"><span /><span /><span /></div>
+        <div className="session-check-loader" />
+        <p>Comprobando tu sesión…</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginPage onAuthenticated={handleAuthenticated} />;
   }
 
   return (
@@ -1427,7 +1524,7 @@ function App() {
 
         <nav aria-label="Navegación principal">
           <p className="nav-label">Plataforma</p>
-          {navigation.map((item) => (
+          {visibleNavigation.map((item) => (
             <NavLink
               className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
               end={item.path === "/"}
@@ -1472,7 +1569,18 @@ function App() {
                   })}`
                 : "Esperando datos"}
             </div>
-            <div className="avatar" aria-label="Usuario administrador">KA</div>
+            <div className="topbar-user">
+              <div className="topbar-user-copy">
+                <strong>{user.nombre}</strong>
+                <span>{user.rol === "administrador" ? "Administrador" : "Consulta"}</span>
+              </div>
+              <div className="avatar" aria-label={`Usuario ${user.nombre}`}>
+                {userInitials}
+              </div>
+              <button className="logout-button" type="button" onClick={handleLogout}>
+                Salir
+              </button>
+            </div>
           </div>
         </header>
 

@@ -76,7 +76,7 @@ function formatFileSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
-function CargasPage() {
+function CargasPage({ token, onSessionExpired }) {
   const inputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [dragging, setDragging] = useState(false);
@@ -140,10 +140,18 @@ function CargasPage() {
 
       const response = await fetch(`${API_BASE}/cargas/excel`, {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
       });
 
       const responseData = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        onSessionExpired?.();
+        throw new Error("La sesión expiró. Inicia sesión nuevamente.");
+      }
 
       if (!response.ok) {
         throw new Error(
