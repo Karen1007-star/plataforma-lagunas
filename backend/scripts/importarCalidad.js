@@ -8,10 +8,12 @@ require("dotenv").config({
 
 const pool = require("../db");
 
-const rutaExcel = path.resolve(
-  __dirname,
-  "../../datos/Base_Simulada_Plataforma_Lagunas.xlsx"
-);
+const rutaExcel = process.env.RUTA_EXCEL
+  ? path.resolve(process.env.RUTA_EXCEL)
+  : path.resolve(
+      __dirname,
+      "../../datos/Base_Simulada_Plataforma_Lagunas.xlsx"
+    );
 
 async function leerHoja(nombreHoja, campoIdentificador) {
   const filas = await readSheet(rutaExcel, nombreHoja);

@@ -8,10 +8,12 @@ require("dotenv").config({
 
 const pool = require("../db");
 
-const rutaExcel = path.resolve(
-  __dirname,
-  "../../datos/Base_Simulada_Plataforma_Lagunas.xlsx"
-);
+const rutaExcel = process.env.RUTA_EXCEL
+  ? path.resolve(process.env.RUTA_EXCEL)
+  : path.resolve(
+      __dirname,
+      "../../datos/Base_Simulada_Plataforma_Lagunas.xlsx"
+    );
 
 async function leerHoja(nombreHoja, camposRequeridos) {
   const filas = await readSheet(rutaExcel, nombreHoja);
@@ -80,16 +82,12 @@ async function importarMonitoreo() {
     "observaciones",
   ]);
 
-  if (puntos.length !== 48) {
-    throw new Error(
-      `Se esperaban 48 puntos de monitoreo, pero se encontraron ${puntos.length}`
-    );
+  if (puntos.length === 0) {
+    throw new Error("La hoja Puntos_Monitoreo no contiene registros para importar");
   }
 
-  if (campanas.length !== 288) {
-    throw new Error(
-      `Se esperaban 288 campañas, pero se encontraron ${campanas.length}`
-    );
+  if (campanas.length === 0) {
+    throw new Error("La hoja Campanas_Monitoreo no contiene registros para importar");
   }
 
   const cliente = await pool.connect();

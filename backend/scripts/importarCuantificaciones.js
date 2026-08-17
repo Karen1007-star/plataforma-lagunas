@@ -8,10 +8,12 @@ require("dotenv").config({
 
 const pool = require("../db");
 
-const rutaExcel = path.resolve(
-  __dirname,
-  "../../datos/Base_Simulada_Plataforma_Lagunas.xlsx"
-);
+const rutaExcel = process.env.RUTA_EXCEL
+  ? path.resolve(process.env.RUTA_EXCEL)
+  : path.resolve(
+      __dirname,
+      "../../datos/Base_Simulada_Plataforma_Lagunas.xlsx"
+    );
 
 async function leerCuantificaciones() {
   const filas = await readSheet(rutaExcel, "Cuantificacion");
@@ -59,10 +61,8 @@ async function importarCuantificaciones() {
 
   const mediciones = await leerCuantificaciones();
 
-  if (mediciones.length !== 432) {
-    throw new Error(
-      `Se esperaban 432 mediciones, pero el Excel contiene ${mediciones.length}.`
-    );
+  if (mediciones.length === 0) {
+    throw new Error("La hoja Cuantificacion no contiene mediciones para importar.");
   }
 
   const cliente = await pool.connect();
