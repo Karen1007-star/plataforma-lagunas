@@ -8,6 +8,7 @@ import "./Overview.css";
 import "./Lagunas.css";
 import "./Cuantificacion.css";
 import "./MapaLagunas.css";
+import MonitoreoPage from "./Monitoreo";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
@@ -1396,7 +1397,9 @@ function App() {
     if (location.pathname === "/cuantificacion") {
       return <QuantificationPage catalog={catalog} />;
     }
-
+    if (location.pathname === "/monitoreo") {
+      return <MonitoreoPage catalog={catalog} />;
+    }
     const pending = navigation.find((item) => item.path === location.pathname);
     return <PendingModule icon={pending?.icon || "grid"} title={pending?.label || "Módulo"} />;
   }
