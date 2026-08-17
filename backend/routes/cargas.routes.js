@@ -5,6 +5,10 @@ const os = require("os");
 const fs = require("fs/promises");
 const { execFile } = require("child_process");
 const { promisify } = require("util");
+const {
+  authenticate,
+  requireRole,
+} = require("../middleware/auth.middleware");
 
 const router = express.Router();
 const execFileAsync = promisify(execFile);
@@ -84,7 +88,12 @@ async function runImporter(importer, excelPath) {
   };
 }
 
-router.post("/excel", receiveExcel, async (req, res) => {
+router.post(
+  "/excel",
+  authenticate,
+  requireRole("administrador"),
+  receiveExcel,
+  async (req, res) => {
   if (!req.file) {
     return res.status(400).json({
       ok: false,
@@ -134,6 +143,7 @@ router.post("/excel", receiveExcel, async (req, res) => {
       await fs.rm(temporaryDirectory, { recursive: true, force: true });
     }
   }
-});
+  },
+);
 
 module.exports = router;
