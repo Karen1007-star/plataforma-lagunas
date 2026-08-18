@@ -2,11 +2,18 @@ import { useState } from "react";
 import "./Login.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const RETRYABLE_STATUS = new Set([404, 502, 503, 504]);
+const MAX_LOGIN_ATTEMPTS = 13;
+const RETRY_DELAY_MS = 5000;
+
+const wait = (milliseconds) =>
+  new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 
 function LoginPage({ onLogin, checking = false }) {
   const [correo, setCorreo] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
   const [error, setError] = useState("");
 
   async function handleSubmit(event) {
@@ -14,24 +21,54 @@ function LoginPage({ onLogin, checking = false }) {
     if (loading || checking) return;
 
     setLoading(true);
+    setLoadingMessage("Conectando con el servidor…");
     setError("");
 
     try {
-      const response = await fetch(`${API_BASE}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ correo, password }),
-      });
+      for (let attempt = 1; attempt <= MAX_LOGIN_ATTEMPTS; attempt += 1) {
+        let response;
 
-      const data = await response.json().catch(() => ({}));
+        try {
+          response = await fetch(`${API_BASE}/auth/login`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ correo, password }),
+          });
+        } catch {
+          if (attempt === MAX_LOGIN_ATTEMPTS) {
+            throw new Error(
+              "El servidor gratuito está tardando en iniciar. Espera un momento e inténtalo nuevamente.",
+            );
+          }
 
-      if (!response.ok || !data.token || !data.usuario) {
-        throw new Error(data.mensaje || "No se pudo iniciar sesión");
+          setLoadingMessage("Iniciando servidor gratuito…");
+          await wait(RETRY_DELAY_MS);
+          continue;
+        }
+
+        const data = await response.json().catch(() => ({}));
+
+        if (RETRYABLE_STATUS.has(response.status)) {
+          if (attempt === MAX_LOGIN_ATTEMPTS) {
+            throw new Error(
+              "El servidor gratuito está tardando en iniciar. Espera un momento e inténtalo nuevamente.",
+            );
+          }
+
+          setLoadingMessage("Iniciando servidor gratuito…");
+          await wait(RETRY_DELAY_MS);
+          continue;
+        }
+
+        if (!response.ok || !data.token || !data.usuario) {
+          throw new Error(data.mensaje || "No se pudo iniciar sesión");
+        }
+
+        onLogin(data);
+        return;
       }
-
-      onLogin(data);
     } catch (requestError) {
       setError(
         requestError.message ||
@@ -39,6 +76,7 @@ function LoginPage({ onLogin, checking = false }) {
       );
     } finally {
       setLoading(false);
+      setLoadingMessage("");
     }
   }
 
@@ -108,10 +146,18 @@ function LoginPage({ onLogin, checking = false }) {
           {error && <div className="login-error" role="alert">{error}</div>}
 
           <button className="login-submit" disabled={loading || checking} type="submit">
-            {checking ? "Comprobando sesión…" : loading ? "Ingresando…" : "Ingresar"}
+            {checking
+              ? "Comprobando sesión…"
+              : loading
+                ? loadingMessage || "Ingresando…"
+                : "Ingresar"}
           </button>
 
-          <small className="login-help">El acceso depende del rol asignado a tu cuenta.</small>
+          <small className="login-help">
+            {loading && loadingMessage === "Iniciando servidor gratuito…"
+              ? "La primera conexión puede tardar hasta un minuto."
+              : "El acceso depende del rol asignado a tu cuenta."}
+          </small>
         </form>
       </section>
     </main>
