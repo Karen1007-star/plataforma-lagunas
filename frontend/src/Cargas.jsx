@@ -76,7 +76,7 @@ function formatFileSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
-function CargasPage({ token, onSessionExpired }) {
+function CargasPage({ token, onUnauthorized }) {
   const inputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [dragging, setDragging] = useState(false);
@@ -149,8 +149,8 @@ function CargasPage({ token, onSessionExpired }) {
       const responseData = await response.json().catch(() => ({}));
 
       if (response.status === 401) {
-        onSessionExpired?.();
-        throw new Error("La sesión expiró. Inicia sesión nuevamente.");
+        onUnauthorized?.();
+        return;
       }
 
       if (!response.ok) {

@@ -238,6 +238,7 @@ h1 {
 }
 
 .avatar {
+  flex: 0 0 auto;
   width: 42px;
   height: 42px;
   display: grid;
@@ -249,6 +250,88 @@ h1 {
   box-shadow: 0 6px 16px rgba(15, 65, 85, 0.1);
   font-size: 12px;
   font-weight: 800;
+}
+
+.user-session {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 12px;
+  border-left: 1px solid #dfe8ed;
+}
+
+.user-session-copy {
+  display: grid;
+  min-width: 94px;
+}
+
+.user-session-copy strong {
+  max-width: 170px;
+  overflow: hidden;
+  color: #244a5e;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-session-copy span {
+  margin-top: 2px;
+  color: #8497a2;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.logout-button {
+  padding: 8px 10px;
+  border: 1px solid #d7e3e8;
+  border-radius: 9px;
+  color: #456777;
+  background: #ffffff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  border-color: #b7cbd3;
+  color: #17485e;
+  background: #f7fafb;
+}
+
+.access-denied {
+  min-height: 420px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  padding: 34px;
+  text-align: center;
+}
+
+.access-denied > svg {
+  width: 46px;
+  height: 46px;
+  margin-bottom: 18px;
+  padding: 13px;
+  border-radius: 16px;
+  color: #117d79;
+  background: #e6f6f3;
+}
+
+.access-denied h2 { margin-bottom: 8px; color: #173f53; }
+.access-denied > p:not(.eyebrow) { max-width: 430px; color: #718793; }
+
+.pending-link {
+  display: inline-flex;
+  margin-top: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: #ffffff;
+  background: #118e86;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
 }
 
 .metrics-grid {
@@ -807,6 +890,7 @@ code {
   .nav-item { justify-content: center; padding: 0; }
   .sidebar-note { justify-content: center; padding-inline: 0; }
   main { padding-inline: 22px; }
+  .user-session-copy { display: none; }
 }
 
 @media (max-width: 620px) {
@@ -826,6 +910,10 @@ code {
   main { padding: 20px 14px 30px; }
   .topbar { align-items: flex-start; }
   .live-status { display: none; }
+  .topbar-actions { gap: 6px; }
+  .user-session { gap: 6px; padding-left: 0; border-left: 0; }
+  .logout-button { padding: 8px; font-size: 0; }
+  .logout-button::after { content: "Salir"; font-size: 10px; }
   .metrics-grid { grid-template-columns: 1fr; }
   .quality-content { grid-template-columns: 1fr; justify-items: center; }
   .legend { width: 100%; }

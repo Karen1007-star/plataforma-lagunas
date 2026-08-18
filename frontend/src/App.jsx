@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Navigate, NavLink, useLocation } from "react-router";
+import { NavLink, useLocation, useNavigate } from "react-router";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -13,6 +13,7 @@ import CargasPage from "./Cargas";
 import LoginPage from "./Login";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const AUTH_STORAGE_KEY = "lagunas_auth";
 
 const navigation = [
   { label: "Vista general", icon: "grid", path: "/" },
@@ -1332,13 +1333,51 @@ function PendingModule({ icon, title }) {
   );
 }
 
+function getTokenExpiration(token) {
+  try {
+    const encodedPayload = token
+      .split(".")[1]
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+    const padding = "=".repeat((4 - (encodedPayload.length % 4)) % 4);
+    const payload = JSON.parse(atob(encodedPayload + padding));
+    return Number(payload.exp) * 1000;
+  } catch {
+    return Date.now() + 8 * 60 * 60 * 1000;
+  }
+}
+
+function readStoredSession() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY));
+
+    if (!stored?.token || !stored?.usuario || stored.expiresAt <= Date.now()) {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      return null;
+    }
+
+    return stored;
+  } catch {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    return null;
+  }
+}
+
+function getInitials(name = "Usuario") {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
+
 function App() {
   const location = useLocation();
-  const [authToken, setAuthToken] = useState(
-    () => localStorage.getItem("lagunas_auth_token") || "",
-  );
-  const [user, setUser] = useState(null);
-  const [sessionLoading, setSessionLoading] = useState(true);
+  const navigate = useNavigate();
+  const [session, setSession] = useState(() => readStoredSession());
+  const [authChecking, setAuthChecking] = useState(true);
   const [summary, setSummary] = useState(null);
   const [states, setStates] = useState([]);
   const [qualityByLagoon, setQualityByLagoon] = useState([]);
@@ -1346,6 +1385,84 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatedAt, setUpdatedAt] = useState(null);
+
+  function saveSession(data) {
+    const nextSession = {
+      token: data.token,
+      usuario: data.usuario,
+      expiresAt: getTokenExpiration(data.token),
+    };
+
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextSession));
+    setSession(nextSession);
+    setAuthChecking(false);
+    navigate("/");
+  }
+
+  function logout() {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    setSession(null);
+    setSummary(null);
+    setStates([]);
+    setQualityByLagoon([]);
+    setCatalog([]);
+    navigate("/");
+  }
+
+  useEffect(() => {
+    let active = true;
+
+    async function validateSession() {
+      if (!session?.token) {
+        setAuthChecking(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${session.token}`,
+          },
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || !data.usuario) {
+          throw new Error(data.mensaje || "La sesión no es válida");
+        }
+
+        if (active) {
+          const validatedSession = { ...session, usuario: data.usuario };
+          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(validatedSession));
+          setSession(validatedSession);
+        }
+      } catch {
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        if (active) setSession(null);
+      } finally {
+        if (active) setAuthChecking(false);
+      }
+    }
+
+    validateSession();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!session?.expiresAt) return undefined;
+
+    const remainingTime = session.expiresAt - Date.now();
+
+    if (remainingTime <= 0) {
+      logout();
+      return undefined;
+    }
+
+    const timer = window.setTimeout(logout, remainingTime);
+    return () => window.clearTimeout(timer);
+  }, [session?.expiresAt]);
 
   async function loadDashboard() {
     setLoading(true);
@@ -1382,84 +1499,23 @@ function App() {
     }
   }
 
-  function handleAuthenticated({ token, usuario }) {
-    localStorage.setItem("lagunas_auth_token", token);
-    setAuthToken(token);
-    setUser(usuario);
-    setSessionLoading(false);
+  useEffect(() => {
+    if (session?.token) loadDashboard();
+  }, [session?.token]);
+
+  if (authChecking) {
+    return <LoginPage checking onLogin={saveSession} />;
   }
 
-  function handleLogout() {
-    localStorage.removeItem("lagunas_auth_token");
-    setAuthToken("");
-    setUser(null);
-    setSummary(null);
-    setStates([]);
-    setQualityByLagoon([]);
-    setCatalog([]);
-    setUpdatedAt(null);
-    setError("");
+  if (!session) {
+    return <LoginPage onLogin={saveSession} />;
   }
-
-  useEffect(() => {
-    if (!authToken) {
-      setSessionLoading(false);
-      return undefined;
-    }
-
-    if (user) {
-      setSessionLoading(false);
-      return undefined;
-    }
-
-    const controller = new AbortController();
-
-    async function validateSession() {
-      setSessionLoading(true);
-
-      try {
-        const response = await fetch(`${API_BASE}/auth/me`, {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          throw new Error("La sesión no es válida");
-        }
-
-        const data = await response.json();
-        setUser(data.usuario);
-      } catch (requestError) {
-        if (requestError.name === "AbortError") return;
-        localStorage.removeItem("lagunas_auth_token");
-        setAuthToken("");
-        setUser(null);
-      } finally {
-        if (!controller.signal.aborted) setSessionLoading(false);
-      }
-    }
-
-    validateSession();
-    return () => controller.abort();
-  }, [authToken, user]);
-
-  useEffect(() => {
-    if (user) loadDashboard();
-  }, [user?.id]);
 
   const currentPage = pageDetails[location.pathname] || pageDetails["/"];
+  const isAdministrator = session.usuario.rol === "administrador";
   const visibleNavigation = navigation.filter(
-    (item) => item.path !== "/cargas" || user?.rol === "administrador",
+    (item) => item.path !== "/cargas" || isAdministrator,
   );
-  const userInitials = String(user?.nombre || "Usuario")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
 
   function renderPage() {
     if (location.pathname === "/") {
@@ -1487,28 +1543,22 @@ function App() {
       return <MonitoreoPage catalog={catalog} />;
     }
     if (location.pathname === "/cargas") {
-      if (user?.rol !== "administrador") {
-        return <Navigate to="/" replace />;
+      if (!isAdministrator) {
+        return (
+          <section className="panel access-denied" role="alert">
+            <Icon name="shield" />
+            <p className="eyebrow">ACCESO RESTRINGIDO</p>
+            <h2>Tu perfil es solo de consulta</h2>
+            <p>La carga de archivos está disponible únicamente para administradores.</p>
+            <NavLink className="pending-link" to="/">Volver a Vista general</NavLink>
+          </section>
+        );
       }
 
-      return <CargasPage token={authToken} onSessionExpired={handleLogout} />;
+      return <CargasPage onUnauthorized={logout} token={session.token} />;
     }
     const pending = navigation.find((item) => item.path === location.pathname);
     return <PendingModule icon={pending?.icon || "grid"} title={pending?.label || "Módulo"} />;
-  }
-
-  if (sessionLoading) {
-    return (
-      <div className="session-check">
-        <div className="session-check-logo"><span /><span /><span /></div>
-        <div className="session-check-loader" />
-        <p>Comprobando tu sesión…</p>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <LoginPage onAuthenticated={handleAuthenticated} />;
   }
 
   return (
@@ -1569,16 +1619,16 @@ function App() {
                   })}`
                 : "Esperando datos"}
             </div>
-            <div className="topbar-user">
-              <div className="topbar-user-copy">
-                <strong>{user.nombre}</strong>
-                <span>{user.rol === "administrador" ? "Administrador" : "Consulta"}</span>
+            <div className="user-session">
+              <div className="avatar" aria-hidden="true">
+                {getInitials(session.usuario.nombre)}
               </div>
-              <div className="avatar" aria-label={`Usuario ${user.nombre}`}>
-                {userInitials}
+              <div className="user-session-copy">
+                <strong>{session.usuario.nombre}</strong>
+                <span>{isAdministrator ? "Administrador" : "Consulta"}</span>
               </div>
-              <button className="logout-button" type="button" onClick={handleLogout}>
-                Salir
+              <button className="logout-button" onClick={logout} type="button">
+                Cerrar sesión
               </button>
             </div>
           </div>
