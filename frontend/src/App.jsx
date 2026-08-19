@@ -16,12 +16,12 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 const AUTH_STORAGE_KEY = "lagunas_auth";
 
 const navigation = [
-  { label: "Vista general", icon: "grid", path: "/" },
-  { label: "Lagunas", icon: "lake", path: "/lagunas" },
-  { label: "Cuantificación", icon: "chart", path: "/cuantificacion" },
-  { label: "Monitoreo", icon: "pin", path: "/monitoreo" },
-  { label: "Calidad", icon: "shield", path: "/calidad" },
-  { label: "Carga de datos", icon: "clipboard", path: "/cargas" },
+  { label: "Vista general", mobileLabel: "Inicio", icon: "grid", path: "/" },
+  { label: "Lagunas", mobileLabel: "Lagunas", icon: "lake", path: "/lagunas" },
+  { label: "Cuantificación", mobileLabel: "Cuantif.", icon: "chart", path: "/cuantificacion" },
+  { label: "Monitoreo", mobileLabel: "Monitoreo", icon: "pin", path: "/monitoreo" },
+  { label: "Calidad", mobileLabel: "Calidad", icon: "shield", path: "/calidad" },
+  { label: "Carga de datos", mobileLabel: "Cargas", icon: "clipboard", path: "/cargas" },
 ];
 
 const pageDetails = {
@@ -1503,6 +1503,10 @@ function App() {
     if (session?.token) loadDashboard();
   }, [session?.token]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [location.pathname]);
+
   if (authChecking) {
     return <LoginPage checking onLogin={saveSession} />;
   }
@@ -1576,15 +1580,17 @@ function App() {
           <p className="nav-label">Plataforma</p>
           {visibleNavigation.map((item) => (
             <NavLink
+              aria-label={item.label}
               className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
               end={item.path === "/"}
               key={item.path}
+              title={item.label}
               to={item.path}
             >
               {({ isActive }) => (
                 <>
                   <Icon name={item.icon} />
-                  <span>{item.label}</span>
+                  <span data-mobile-label={item.mobileLabel}>{item.label}</span>
                   {isActive && <i />}
                 </>
               )}

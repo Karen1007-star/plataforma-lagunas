@@ -491,6 +491,26 @@
 
 @media (max-width: 620px) {
   .lagoon-grid { grid-template-columns: 1fr; }
-  .lagoon-detail { width: 100%; }
+  .lagoon-toolbar { padding: 18px; }
+
+  .lagoon-card-body > button {
+    min-height: 44px;
+    justify-content: center;
+    gap: 8px;
+    font-size: 10px;
+  }
+
+  .lagoon-detail {
+    width: 100%;
+    padding: 22px 18px calc(22px + env(safe-area-inset-bottom));
+  }
+
+  .lagoon-detail-header {
+    grid-template-columns: 44px minmax(0, 1fr) 40px;
+    gap: 10px;
+  }
+
+  .lagoon-detail-mark { width: 44px; height: 44px; }
+  .detail-close { width: 40px; height: 40px; }
   .detail-section dl { grid-template-columns: 1fr; }
 }

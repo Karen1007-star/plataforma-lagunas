@@ -242,3 +242,21 @@
   }
   .login-mobile-brand strong { color: #173447; font-size: 1.15rem; }
 }
+
+@media (max-width: 480px) {
+  .login-form-side {
+    align-items: start;
+    padding: 18px 14px;
+  }
+
+  .login-card {
+    padding: 28px 22px;
+    border-radius: 20px;
+  }
+
+  .login-mobile-brand { margin-bottom: 30px; }
+  .login-card h2 { font-size: 1.85rem; }
+  .login-intro { margin-bottom: 24px; }
+  .login-card input,
+  .login-submit { min-height: 48px; }
+}

@@ -370,7 +370,15 @@
 
 @media (max-width: 760px) {
   .lagoon-view-switch {
+    width: 100%;
     margin: 12px 0 0;
+  }
+
+  .lagoon-view-switch button {
+    min-height: 44px;
+    flex: 1;
+    justify-content: center;
+    font-size: 10px;
   }
 
   .map-panel-header,
@@ -384,17 +392,23 @@
   }
 
   .lagoon-map-canvas {
-    height: 540px;
+    height: min(60dvh, 500px);
+    min-height: 390px;
   }
 }
 
 @media (max-width: 520px) {
+  .map-panel-header,
+  .map-panel-footer {
+    padding-inline: 18px;
+  }
+
   .map-state-legend span {
     width: calc(50% - 6px);
   }
 
   .lagoon-map-canvas .leaflet-popup-content {
-    width: 240px !important;
+    width: min(230px, calc(100vw - 84px)) !important;
   }
 
   .popup-stats {
@@ -403,5 +417,12 @@
 
   .popup-stats > div:last-child {
     grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 380px) {
+  .lagoon-map-canvas {
+    height: 52dvh;
+    min-height: 340px;
   }
 }
