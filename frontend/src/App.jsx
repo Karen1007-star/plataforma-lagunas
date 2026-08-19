@@ -1284,18 +1284,18 @@ function QuantificationPage({ catalog }) {
                     );
                     return (
                       <tr key={measurement.id_cuantificacion}>
-                        <td><strong>{formatDate(measurement.fecha_medicion)}</strong></td>
-                        <td>{formatNumber(measurement.area_humeda_ha, 2)} ha</td>
-                        <td>{formatNumber(measurement.area_seca_ha, 2)} ha</td>
-                        <td>
+                        <td data-label="Fecha"><strong>{formatDate(measurement.fecha_medicion)}</strong></td>
+                        <td data-label="Área húmeda">{formatNumber(measurement.area_humeda_ha, 2)} ha</td>
+                        <td data-label="Área seca">{formatNumber(measurement.area_seca_ha, 2)} ha</td>
+                        <td data-label="Disponibilidad">
                           <div className="quant-table-progress">
                             <div><span style={{ width: `${Math.min(100, availablePercentage)}%` }} /></div>
                             <strong>{formatNumber(availablePercentage, 1)}%</strong>
                           </div>
                         </td>
-                        <td>{formatNumber(measurement.volumen_disponible_hm3, 3)} hm³</td>
-                        <td>{formatNumber(measurement.nivel_agua_m, 2)} m</td>
-                        <td><span className="source-chip">{measurement.fuente_dato || "—"}</span></td>
+                        <td data-label="Volumen">{formatNumber(measurement.volumen_disponible_hm3, 3)} hm³</td>
+                        <td data-label="Nivel del agua">{formatNumber(measurement.nivel_agua_m, 2)} m</td>
+                        <td data-label="Fuente"><span className="source-chip">{measurement.fuente_dato || "—"}</span></td>
                       </tr>
                     );
                   })}
@@ -1376,6 +1376,7 @@ function getInitials(name = "Usuario") {
 function App() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [session, setSession] = useState(() => readStoredSession());
   const [authChecking, setAuthChecking] = useState(true);
   const [summary, setSummary] = useState(null);
@@ -1507,6 +1508,23 @@ function App() {
     window.scrollTo({ top: 0, behavior: "auto" });
   }, [location.pathname]);
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [mobileMenuOpen]);
+
   if (authChecking) {
     return <LoginPage checking onLogin={saveSession} />;
   }
@@ -1567,13 +1585,35 @@ function App() {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      <button
+        aria-controls="primary-sidebar"
+        aria-expanded={mobileMenuOpen}
+        className="mobile-menu-trigger"
+        onClick={() => setMobileMenuOpen(true)}
+        type="button"
+      >
+        <span aria-hidden="true" className="mobile-menu-bars"><i /><i /><i /></span>
+        Menú
+      </button>
+
+      <aside
+        className={`sidebar ${mobileMenuOpen ? "mobile-open" : ""}`}
+        id="primary-sidebar"
+      >
         <div className="brand">
           <div className="brand-mark"><span /><span /><span /></div>
           <div>
             <strong>Lagunas</strong>
             <small>Gestión hídrica</small>
           </div>
+          <button
+            aria-label="Cerrar menú"
+            className="mobile-menu-close"
+            onClick={() => setMobileMenuOpen(false)}
+            type="button"
+          >
+            ×
+          </button>
         </div>
 
         <nav aria-label="Navegación principal">
@@ -1584,6 +1624,7 @@ function App() {
               className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
               end={item.path === "/"}
               key={item.path}
+              onClick={() => setMobileMenuOpen(false)}
               title={item.label}
               to={item.path}
             >
@@ -1606,6 +1647,15 @@ function App() {
           </div>
         </div>
       </aside>
+
+      {mobileMenuOpen && (
+        <button
+          aria-label="Cerrar menú"
+          className="mobile-menu-backdrop"
+          onClick={() => setMobileMenuOpen(false)}
+          type="button"
+        />
+      )}
 
       <main>
         <header className="topbar">

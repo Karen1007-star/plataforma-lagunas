@@ -374,17 +374,17 @@ function MonitoreoPage({ catalog = [] }) {
                 <tbody>
                   {filteredCampaigns.map((campaign) => (
                     <tr key={campaign.id_campana}>
-                      <td><strong>{formatDate(campaign.fecha_muestreo)}</strong></td>
-                      <td>
+                      <td data-label="Fecha"><strong>{formatDate(campaign.fecha_muestreo)}</strong></td>
+                      <td data-label="Punto">
                         <div className="monitor-table-point">
                           <code>{campaign.codigo_punto}</code>
                           <span>{campaign.nombre_punto}</span>
                         </div>
                       </td>
-                      <td><span className={`monitor-season ${normalizeClass(campaign.temporada)}`}>{campaign.temporada || "—"}</span></td>
-                      <td>{campaign.responsable_muestreo || "—"}</td>
-                      <td>{campaign.laboratorio || "—"}</td>
-                      <td className="monitor-observation">{campaign.observaciones || "Sin observaciones"}</td>
+                      <td data-label="Temporada"><span className={`monitor-season ${normalizeClass(campaign.temporada)}`}>{campaign.temporada || "—"}</span></td>
+                      <td data-label="Responsable">{campaign.responsable_muestreo || "—"}</td>
+                      <td data-label="Laboratorio">{campaign.laboratorio || "—"}</td>
+                      <td className="monitor-observation" data-label="Observaciones">{campaign.observaciones || "Sin observaciones"}</td>
                     </tr>
                   ))}
                 </tbody>

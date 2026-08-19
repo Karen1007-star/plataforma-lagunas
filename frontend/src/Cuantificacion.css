@@ -471,9 +471,37 @@
 }
 
 @media (max-width: 560px) {
+  .quant-toolbar,
+  .metrics-grid,
+  .quant-main-grid,
+  .quant-trend-panel,
+  .quant-balance-panel,
+  .quant-history-panel {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .quant-toolbar {
+    padding: 18px;
+  }
+
+  .quant-feedback {
+    min-height: 320px;
+    padding: 24px 18px;
+  }
+
   .quant-trend-panel,
   .quant-balance-panel {
     padding: 18px;
+  }
+
+  .quant-chart-wrap {
+    overflow: hidden;
+  }
+
+  .quant-chart {
+    min-width: 0;
   }
 
   .quant-chart-footer,
@@ -485,5 +513,115 @@
   .quant-lagoon-id {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .quant-history-panel {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .quant-history-heading {
+    margin-bottom: 12px;
+    padding: 18px;
+    border: 1px solid #e5edf2;
+    border-radius: 18px;
+    background: #ffffff;
+    box-shadow: 0 10px 26px rgba(37, 75, 95, 0.05);
+  }
+
+  .quant-history-panel .table-wrap {
+    overflow: visible;
+  }
+
+  .quant-history-panel table,
+  .quant-history-panel tbody,
+  .quant-history-panel tr,
+  .quant-history-panel td {
+    width: 100%;
+    min-width: 0;
+    display: block;
+  }
+
+  .quant-history-panel thead {
+    width: 1px;
+    height: 1px;
+    position: absolute;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .quant-history-panel tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .quant-history-panel tbody tr {
+    overflow: hidden;
+    padding: 11px 16px;
+    border: 1px solid #e5edf2;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 9px 24px rgba(37, 75, 95, 0.045);
+  }
+
+  .quant-history-panel tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 0;
+    border-top: 0;
+    white-space: normal;
+    text-align: right;
+  }
+
+  .quant-history-panel tbody td + td {
+    border-top: 1px solid #edf2f4;
+  }
+
+  .quant-history-panel tbody td::before {
+    content: attr(data-label);
+    flex: 0 0 42%;
+    color: #81959f;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  .quant-table-progress {
+    min-width: 0;
+    justify-content: flex-end;
+  }
+
+  .quant-history-panel .table-footer {
+    margin-top: 12px;
+    padding: 14px 16px;
+    border: 1px solid #e5edf2;
+    border-radius: 14px;
+    background: #ffffff;
+  }
+}
+
+@media (min-width: 561px) and (max-width: 900px) {
+  .quant-toolbar,
+  .metrics-grid,
+  .quant-main-grid,
+  .quant-trend-panel,
+  .quant-balance-panel,
+  .quant-history-panel {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .quant-history-panel .table-wrap {
+    max-width: 100%;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
   }
 }

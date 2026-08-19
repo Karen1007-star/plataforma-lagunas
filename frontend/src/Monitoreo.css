@@ -451,12 +451,157 @@
 
 @media (max-width: 580px) {
   .monitor-page { gap: 16px; }
-  .monitor-metrics { grid-template-columns: 1fr; }
+
+  .monitor-page,
+  .monitor-selector-panel,
+  .monitor-metrics,
+  .monitor-points-panel,
+  .monitor-history-panel {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .monitor-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .monitor-metric {
+    min-height: 124px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+    padding: 15px;
+  }
+
+  .monitor-metric-icon {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+    border-radius: 11px;
+  }
+
+  .monitor-metric-icon .monitor-icon {
+    width: 19px;
+    height: 19px;
+  }
+
+  .monitor-metric p { font-size: 0.7rem; }
+  .monitor-metric strong { font-size: 1.08rem; }
+  .monitor-metric small { font-size: 0.65rem; }
+
   .monitor-selector-panel,
   .monitor-points-panel,
-  .monitor-history-panel { padding: 20px; }
+  .monitor-history-panel { padding: 18px; }
+
   .monitor-heading { align-items: flex-start; flex-direction: column; }
   .monitor-lagoon-badge { align-items: flex-start; flex-direction: column; }
   .monitor-filters { align-items: stretch; flex-direction: column; }
   .monitor-table-footer { flex-direction: column; }
+
+  .monitor-point-card header {
+    align-items: flex-start;
+    padding: 15px;
+  }
+
+  .monitor-point-facts {
+    gap: 12px;
+    padding: 15px;
+  }
+
+  .monitor-point-card footer {
+    padding: 12px 15px;
+  }
+
+  .monitor-table-wrap {
+    overflow: visible;
+    border: 0;
+  }
+
+  .monitor-table-wrap table,
+  .monitor-table-wrap tbody,
+  .monitor-table-wrap tr,
+  .monitor-table-wrap td {
+    width: 100%;
+    min-width: 0;
+    display: block;
+  }
+
+  .monitor-table-wrap thead {
+    width: 1px;
+    height: 1px;
+    position: absolute;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .monitor-table-wrap tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .monitor-table-wrap tbody tr {
+    overflow: hidden;
+    padding: 11px 15px;
+    border: 1px solid #e4eaf1;
+    border-radius: 15px;
+    background: #ffffff;
+  }
+
+  .monitor-table-wrap tbody td {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 8px 0;
+    border-bottom: 0;
+    white-space: normal;
+    text-align: right;
+  }
+
+  .monitor-table-wrap tbody td + td {
+    border-top: 1px solid #edf1f5;
+  }
+
+  .monitor-table-wrap tbody td::before {
+    content: attr(data-label);
+    flex: 0 0 38%;
+    color: #8793a5;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  .monitor-table-point {
+    justify-items: end;
+  }
+
+  .monitor-observation {
+    max-width: none;
+  }
+}
+
+@media (max-width: 350px) {
+  .monitor-metrics { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 581px) and (max-width: 900px) {
+  .monitor-page,
+  .monitor-selector-panel,
+  .monitor-metrics,
+  .monitor-points-panel,
+  .monitor-history-panel {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .monitor-table-wrap {
+    max-width: 100%;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+  }
 }
